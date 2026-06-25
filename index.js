@@ -2,13 +2,14 @@
 // 订单图片上传 - 后端 API 服务
 
 // 本地开发时加载 .env，EdgeOne 部署时环境变量由控制台配置
-try { require('dotenv').config(); } catch(e) {}
+import dotenv from 'dotenv';
+try { await dotenv.config(); } catch(e) {}
 
-const express = require('express');
-const cors = require('cors');
-const { createClient } = require('@supabase/supabase-js');
-const axios = require('axios');
-const ws = require('ws');
+import express from 'express';
+import cors from 'cors';
+import { createClient } from '@supabase/supabase-js';
+import axios from 'axios';
+import ws from 'ws';
 
 const app = express();
 
@@ -25,8 +26,8 @@ const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
     params: {
       eventsPerSecond: 10,
     },
-  },
-  ws: ws
+    transport: ws
+  }
 });
 
 // ==================== 中间件 ====================

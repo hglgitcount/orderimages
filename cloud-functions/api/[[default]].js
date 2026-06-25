@@ -23,9 +23,8 @@ const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
     params: {
       eventsPerSecond: 10,
     },
-  },
-  // @ts-ignore - ws 类型兼容
-  ws: ws
+    transport: ws
+  }
 });
 
 // ==================== 中间件 ====================
