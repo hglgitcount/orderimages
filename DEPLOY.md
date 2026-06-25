@@ -1,5 +1,32 @@
 # 订单图片管理系统 - 部署指南
 
+## 📋 环境要求
+
+| 组件 | 版本要求 | 说明 |
+|------|----------|------|
+| **Node.js** | **20.x** (LTS) | 必须使用 Node.js 20，不支持 22 及以上版本 |
+| **npm** | >= 9.0 | 随 Node.js 20 安装 |
+| **平台** | EdgeOne Pages / Render | 支持两种部署方式 |
+
+> ⚠️ **重要**: 本项目针对 **Node.js 20.x** 环境优化，EdgeOne Pages 当前最高支持 Node.js 20。
+
+### 确认 Node.js 版本
+
+```bash
+# 查看当前版本
+node --version
+# 应输出: v20.x.x
+
+# 如果版本不对，使用 nvm 切换:
+nvm use 20
+# 或安装:
+nvm install 20
+```
+
+项目已配置 `.nvmrc` 文件，使用 `nvm use` 即可自动切换到正确版本。
+
+---
+
 ## 一、前置准备
 
 ### 1.1 注册所需账号
@@ -116,9 +143,52 @@ CREATE POLICY "public_read" ON storage.objects FOR SELECT
 
 ---
 
-## 三、Render 部署
+## 三、部署方式
 
-### 3.1 推送代码到 GitHub
+### 方式 A：EdgeOne Pages（推荐，国内访问更快）
+
+#### 3A.1 项目结构要求
+
+```
+server/
+├── package.json          # 包含 engines 字段指定 Node.js 20
+├── .nvmrc                # Node.js 版本控制文件
+├── cloud-functions/
+│   └── api/
+│       └── [[default]].js  # EdgeOne Functions 入口
+└── DEPLOY.md
+```
+
+#### 3A.2 EdgeOne 控制台配置
+
+1. 登录 [腾讯云 EdgeOne 控制台](https://console.cloud.tencent.com/edgeone)
+2. 创建 **EdgeOne Pages** 站点
+3. 连接 GitHub 仓库或手动上传
+4. **运行环境设置**：
+   - 运行时：**Node.js 20**
+   - 构建命令：`npm install`
+   - 输出目录：`cloud-functions`
+
+#### 3A.3 配置环境变量
+
+在 EdgeOne Pages 控制台的环境变量设置中添加：
+
+| 变量名 | 值 | 说明 |
+|--------|-----|------|
+| `SUPABASE_URL` | 你的 Supabase Project URL | 必填 |
+| `SUPABASE_SERVICE_ROLE_KEY` | 你的 Supabase service_role key | 必填 |
+| `WX_APPID` | 微信小程序 AppID | 必填 |
+| `WX_SECRET` | 微信小程序 AppSecret | 必填 |
+
+#### 3A.4 部署验证
+
+部署完成后，访问 `https://你的域名/api/health` 验证服务状态。
+
+---
+
+### 方式 B：Render（国际访问）
+
+#### 3B.1 推送代码到 GitHub
 
 ```bash
 cd server
@@ -130,7 +200,7 @@ git remote add origin https://github.com/你的用户名/order-image-api.git
 git push -u origin main
 ```
 
-### 3.2 在 Render 创建 Web Service
+#### 3B.2 在 Render 创建 Web Service
 
 1. Render 控制台 → **New Web Service**
 2. 连接 GitHub → 选择 `order-image-api` 仓库
@@ -141,7 +211,7 @@ git push -u origin main
    - **Start Command**: `node index.js`
    - **Instance Type**: **Free**
 
-### 3.3 添加环境变量
+#### 3B.3 添加环境变量
 
 在 Render 的环境变量设置中添加：
 
@@ -154,7 +224,7 @@ git push -u origin main
 | `ADMIN_OPENIDS` | 管理员 openid（逗号分隔） |
 | `JWT_SECRET` | 随机生成一个长字符串 |
 
-### 3.4 部署并获取 URL
+#### 3B.4 部署并获取 URL
 
 点击 **Create Web Service**，等待部署完成。记下你的 Render URL，如：
 `https://order-image-api.onrender.com`

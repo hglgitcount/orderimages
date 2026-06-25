@@ -6,6 +6,7 @@ import express from 'express';
 import cors from 'cors';
 import { createClient } from '@supabase/supabase-js';
 import axios from 'axios';
+import ws from 'ws';
 
 const app = express();
 
@@ -16,7 +17,16 @@ const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const WX_APPID = process.env.WX_APPID;
 const WX_SECRET = process.env.WX_SECRET;
 
-const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+// Node.js 20 需要使用 ws 库作为 WebSocket transport（Node.js 22+ 才有原生支持）
+const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+  realtime: {
+    params: {
+      eventsPerSecond: 10,
+    },
+  },
+  // @ts-ignore - ws 类型兼容
+  ws: ws
+});
 
 // ==================== 中间件 ====================
 app.use(cors());
