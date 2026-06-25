@@ -1,22 +1,20 @@
-// server/index.js
-// 订单图片上传 - 后端 API 服务
+// cloud-functions/api/[[default]].js
+// EdgeOne Pages Node Functions - 订单图片上传 API
+// 所有 /api/* 请求由该文件处理（catch-all 路由）
 
-// 本地开发时加载 .env，EdgeOne 部署时环境变量由控制台配置
-try { require('dotenv').config(); } catch(e) {}
-
-const express = require('express');
-const cors = require('cors');
-const { createClient } = require('@supabase/supabase-js');
-const axios = require('axios');
+import express from 'express';
+import cors from 'cors';
+import { createClient } from '@supabase/supabase-js';
+import axios from 'axios';
 
 const app = express();
 
 // ==================== 配置 ====================
+// EdgeOne Pages 环境变量通过控制台设置，无需 dotenv
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const WX_APPID = process.env.WX_APPID;
 const WX_SECRET = process.env.WX_SECRET;
-const PORT = process.env.PORT || 3000;
 
 const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
@@ -28,7 +26,7 @@ app.use((req, res, next) => {
   const start = Date.now();
   res.on('finish', () => {
     const duration = Date.now() - start;
-    if (req.path !== '/api/health') {
+    if (!req.path.endsWith('/health')) {
       console.log(`${req.method} ${req.path} ${res.statusCode} ${duration}ms`);
     }
   });
@@ -37,7 +35,7 @@ app.use((req, res, next) => {
 
 // ==================== 微信登录接口 ====================
 
-// 微信登录：code 换取 openid
+// POST /api/auth/login
 app.post('/api/auth/login', async (req, res) => {
   try {
     const { code } = req.body;
@@ -46,7 +44,6 @@ app.post('/api/auth/login', async (req, res) => {
       return res.status(400).json({ error: '缺少登录凭证(code)' });
     }
 
-    // 调用微信官方接口
     const wxRes = await axios.get('https://api.weixin.qq.com/sns/jscode2session', {
       params: {
         appid: WX_APPID,
@@ -78,8 +75,7 @@ app.post('/api/auth/login', async (req, res) => {
 
 // ==================== 提交保存接口 ====================
 
-// 提交订单图片数据
-// 参数：{ orderNo, openid, images: [{ fileName, mimeType, base64 }] }
+// POST /api/upload/submit
 app.post('/api/upload/submit', async (req, res) => {
   try {
     const { orderNo, openid, images } = req.body;
@@ -106,7 +102,6 @@ app.post('/api/upload/submit', async (req, res) => {
       const storagePath = `${openid}/${orderNo}/${fileName}`;
 
       try {
-        // 将 base64 转为 Buffer 并上传到 Supabase Storage
         const base64Data = img.base64.replace(/^data:image\/\w+;base64,/, '');
         const fileBuffer = Buffer.from(base64Data, 'base64');
 
@@ -125,7 +120,6 @@ app.post('/api/upload/submit', async (req, res) => {
           continue;
         }
 
-        // 写入数据库 images 表
         const { error: imgErr } = await supabaseAdmin
           .from('images')
           .insert({
@@ -199,20 +193,14 @@ app.post('/api/upload/submit', async (req, res) => {
 });
 
 // ==================== 健康检查 ====================
+
+// GET /api/health
 app.get('/api/health', (req, res) => {
   res.json({
     status: 'ok',
-    time: new Date().toISOString(),
-    uptime: process.uptime()
+    time: new Date().toISOString()
   });
 });
 
-// ==================== 启动服务器 ====================
-app.listen(PORT, () => {
-  console.log('='.repeat(50));
-  console.log('订单图片上传 API 服务已启动');
-  console.log('  端口:', PORT);
-  console.log('  Supabase:', SUPABASE_URL ? '已配置' : '未配置');
-  console.log('  微信AppID:', WX_APPID ? '已配置' : '未配置');
-  console.log('='.repeat(50));
-});
+// ⚠️ 关键：导出 Express 实例，不要调用 app.listen()
+export default app;
